@@ -1,0 +1,237 @@
+package databasePracticeMaven;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Application {
+	Scanner sc = new Scanner(System.in);
+	// Database Server and DB credentials
+	static final String DB_URL = "jdbc:mysql://127.0.0.1/sakila";
+	static final String USER = "--";
+	static final String PASS = "--";
+	static Connection connection;
+
+	Application() {
+		try {
+			// Register the JDBC Driver
+			// The driver was added to the project in the pom.xml file
+			Class.forName("com.mysql.cj.jdbc.Driver");
+			// Make the connection to the DB server and DB by passing in server credentials
+			connection = DriverManager.getConnection(DB_URL, USER, PASS);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public void start() {
+		main: do {
+			System.out.println("=================");
+			System.out.println("       MENU      ");
+			System.out.println("=================");
+			System.out.println("1 ] ADD FOOD ITEM"); // INSERT PURCHASE
+			System.out.println("2 ] READ ALL FOODS");// SELECT ALL PURCHASES
+			System.out.println("3 ] SEARCH FOODS"); // VIEW DETAILS OF PURCHASES
+			System.out.println("4 ] UPDATE DETAILS ON FOOD ITEM"); // UPDATE PURCHASES
+			System.out.println("5 ] DELETE ONE FOOD ITEM"); // DELETE PURCHASES
+			System.out.println("Enter [0] to exit, which option?");
+			int opt = sc.nextInt();
+			switch (opt) {
+			case 1:
+				addFood();
+				break;
+			case 2:
+				readFood();
+				break;
+			case 3:
+				searchFood();
+				break;
+			case 4:
+				updateFood();
+				break;
+			case 5:
+				deleteFood();
+				break;
+			case 0:
+				System.out.println("Exiting application.");
+				break main;
+			default:
+				System.out.println("Not a valid entry.");
+			}
+		} while (true);
+		System.out.println("THANK YOU FOR USING OUR SYSTEM!");
+	}
+
+	private boolean addFood() {
+		System.out.println("==================");
+		System.out.println(" INSERT FOOD ITEM ");
+		System.out.println("==================");
+		
+		String sql = "INSERT INTO food (food_id, food_name, food_calories, food_category) VALUES (?,?,?,?)";
+		try {
+			PreparedStatement stmt = connection.prepareStatement(sql);
+			System.out.print("Enter Food ID:(currently at 7)");
+			int id = sc.nextInt();
+			System.out.print("Food Name: ");
+			String name = sc.next();
+			System.out.print("Food Calories:");
+			int calories = sc.nextInt();
+			System.out.print("Food Category: ");
+			String category = sc.next();
+
+			stmt.setInt(1, id); // need to use sql stmt to get the max food_id and add 1
+			stmt.setString(2, name);
+			stmt.setInt(3, calories);
+			stmt.setString(4, category);
+			stmt.execute();
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	private boolean readFood() {
+		System.out.println("==================");
+		System.out.println("  LIST FOOD ITEMS ");
+		System.out.println("==================");
+		System.out.println("\nID\tNAME\tCAL.\tCAT.\n");
+		String sql = "SELECT food_id, food_name, food_calories, food_category FROM food order by food_calories";
+
+		try {
+			PreparedStatement stmt = connection.prepareStatement(sql);
+			ResultSet results = stmt.executeQuery();
+			while (results.next()) {
+				System.out.print(results.getInt("food_id"));
+				System.out.print("\t" + results.getString("food_name"));
+				System.out.print("\t" + results.getInt("food_calories"));
+				System.out.println("\t" + results.getString("food_category") + "\n");
+			}
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	private void searchFood() {
+		System.out.println("===================");
+		System.out.println(" SEARCH FOR A FOOD ");
+		System.out.println("===================");
+
+		try {
+			// GET LIST
+			String sql = "SELECT food_id, food_name, food_calories, food_category FROM food";
+			PreparedStatement stmt = connection.prepareStatement(sql);
+			ResultSet results = stmt.executeQuery();
+			while (results.next()) {
+				System.out.print(results.getInt("food_id") + "] ");
+				System.out.println("\t" + results.getString("food_name"));
+				System.out.print("\t" + results.getInt("food_calories") + "] ");
+				System.out.println("\t" + results.getString("food_category"));
+
+			}
+			System.out.println("Which food item would you like to view?");
+			int opt = sc.nextInt();
+			sc.nextLine();
+			// GET INDIVIDUAL RECORD
+			sql = "SELECT food_id, food_name, food_calories, food_category FROM food WHERE food_id = ?";
+			stmt = connection.prepareStatement(sql);
+			stmt.setInt(1, opt);
+			results = stmt.executeQuery();
+			while (results.next()) {
+				System.out.println("Food ID: " + results.getInt("food_id"));
+				System.out.println("Food Name: " + results.getString("food_name"));
+				System.out.println("Food Calories: " + results.getInt("food_calories"));
+				System.out.println("Food Category: " + results.getString("food_category"));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void updateFood() {
+		System.out.println("==================");
+		System.out.println(" UPDATE FOOD ITEM ");
+		System.out.println("==================");
+		try {
+			// GET LIST
+			String sql = "SELECT food_id, food_name, food_calories, food_category FROM food";
+			PreparedStatement stmt = connection.prepareStatement(sql);
+			ResultSet results = stmt.executeQuery();
+			while (results.next()) {
+				System.out.print(results.getInt("food_id") + "] ");
+				System.out.print("\t" + results.getString("food_name"));
+				System.out.print("\t" + results.getInt("food_calories") + "] ");
+				System.out.print("\t" + results.getString("food_category") + "\n");
+			}
+			System.out.println("Which food item to update?");
+			int opt = sc.nextInt();
+			sc.nextLine();
+			// GET INDIVIDUAL RECORD
+			sql = "SELECT food_id, food_name, food_calories, food_category FROM food WHERE food_id = ?";
+			stmt = connection.prepareStatement(sql);
+			stmt.setInt(1, opt);
+			results = stmt.executeQuery();
+			while (results.next()) {
+				// Allow the user to make changes
+				System.out.println("FOOD NAME [" + results.getString("food_name") + "]: ");
+				String name = sc.next();
+				System.out.println("CALORIES [" + results.getInt("food_calories") + "]: ");
+				Double calories = sc.nextDouble();
+				System.out.println("FOOD CATEGORY [" + results.getString("food_category") + "]: ");
+				String cat = sc.next(); //funny problem, nextLine would not allow user to input values
+				//sc.nextLine();
+				int id = results.getInt("food_id");
+				// Update the table
+				sql = "UPDATE food SET food_name = ?, food_calories = ?, food_category = ? WHERE food_id = ?";
+				stmt = connection.prepareStatement(sql);
+				stmt.setString(1, name);
+				stmt.setDouble(2, calories);
+				stmt.setString(3, cat);
+				stmt.setInt(4, id);
+				stmt.execute();
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void deleteFood() {
+		System.out.println("=================");
+		System.out.println(" DELETE FOOD ");
+		System.out.println("=================");
+		// GET LIST
+		try {
+			String sql = "SELECT food_id, food_name, food_calories, food_category FROM food";
+			PreparedStatement stmt = connection.prepareStatement(sql);
+			ResultSet results = stmt.executeQuery();
+			while (results.next()) {
+				System.out.print(results.getInt("food_id") + "] ");
+				System.out.print("\t" + results.getString("food_name"));
+				System.out.print("\t" + results.getInt("food_calories") + "] ");
+				System.out.print("\t" + results.getString("food_category") + "\n");
+			}
+			System.out.println("Which FOOD item to delete [THERE IS NO UNDO]?");
+			int id = sc.nextInt();
+			// DELETE a record from the table
+			sql = "DELETE FROM FOOD WHERE food_id = ?";
+			stmt = connection.prepareStatement(sql);
+			stmt.setInt(1, id);
+			stmt.execute();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+}
